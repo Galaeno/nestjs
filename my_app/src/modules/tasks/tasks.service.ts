@@ -42,7 +42,6 @@ export class TasksService {
         status: tasksResult.status,
       };
     } catch {
-      // findUniqueOrThrow tira si no existe → mapealo a HTTP 404 prolijo
       return new NotFoundException(`La tarea con id [${id}] no se encontró`);
     }
   }

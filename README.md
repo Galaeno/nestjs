@@ -581,21 +581,58 @@ model User {
 ```bash
 pnpm prisma migrate dev --name init
 ```
+7. Ejemplo de uso:
+```ts
+// service
+import { PrismaService } from '../../prisma.service';
+...
+constructor(private prismaService: PrismaService) {}
+...
+async createTask(data: CreateTask): Promise<CreateTask> {
+  return await this.prismaService.task.create({
+    data,
+  });
+}
 
-### TypeORM (alternativa popular)
-```bash
-pnpm add @nestjs/typeorm typeorm pg
+// module
+import { PrismaService } from 'src/prisma.service';
+
+@Module({
+  controllers: [...],
+  providers: [..., PrismaService],
+})
 ```
-Config inicial en `imports: [TypeOrmModule.forRoot({...})]` y repos por entidad.
 
 
+## Documentacion (swagger)
+https://docs.nestjs.com/openapi/introduction
 
+1. Se agrega como dependencia
+```bash
+pnpm add @nestjs/swagger
+```
+2. Se agrega codigo al main.ts
+```ts
+import { NestFactory } from '@nestjs/core';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { AppModule } from './app.module';
 
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
 
+  const config = new DocumentBuilder()
+    .setTitle('Cats example')
+    .setDescription('The cats API description')
+    .setVersion('1.0')
+    .addTag('cats')
+    .build();
+  const documentFactory = () => SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, documentFactory);
 
-
-
-
+  await app.listen(process.env.PORT ?? 3000);
+}
+bootstrap();
+```
 
 
 
