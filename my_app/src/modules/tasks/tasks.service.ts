@@ -11,7 +11,6 @@ import { Task as TaskDB } from '@prisma/client';
 
 @Injectable()
 export class TasksService {
-  private tasks: Task[] = [];
   constructor(private prismaService: PrismaService) {}
 
   async getTasks(limit: number): Promise<Task[]> {
@@ -42,7 +41,7 @@ export class TasksService {
         title: tasksResult.title,
         status: tasksResult.status,
       };
-    } catch (e: any) {
+    } catch {
       // findUniqueOrThrow tira si no existe → mapealo a HTTP 404 prolijo
       return new NotFoundException(`La tarea con id [${id}] no se encontró`);
     }
@@ -62,7 +61,7 @@ export class TasksService {
           id: data.id,
         },
       });
-    } catch (e: any) {
+    } catch {
       return new NotFoundException(
         `La tarea con id [${data.id}] no se encontró`,
       );
@@ -78,7 +77,7 @@ export class TasksService {
       });
 
       return `Tarea con id ${data.id} eliminada`;
-    } catch (e: any) {
+    } catch {
       return new NotFoundException(
         `La tarea con id [${data.id}] no se encontró`,
       );
@@ -95,7 +94,7 @@ export class TasksService {
           id: data.id,
         },
       });
-    } catch (e: any) {
+    } catch {
       return new NotFoundException(
         `La tarea con id [${data.id}] no se encontró`,
       );

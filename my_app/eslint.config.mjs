@@ -1,3 +1,4 @@
+// eslint.config.mjs
 // @ts-check
 import eslint from '@eslint/js';
 import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
@@ -5,30 +6,20 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  {
-    ignores: ['eslint.config.mjs'],
-  },
+  { ignores: ['dist/**', 'eslint.config.mjs'] },
   eslint.configs.recommended,
-  ...tseslint.configs.recommendedTypeChecked,
-  eslintPluginPrettierRecommended,
+  ...tseslint.configs.recommended, // reglas TS sintácticas
   {
+    files: ['**/*.ts', '**/*.tsx'],
+    extends: [...tseslint.configs.recommendedTypeChecked], // 👈 type-aware ON
     languageOptions: {
-      globals: {
-        ...globals.node,
-        ...globals.jest,
-      },
-      sourceType: 'commonjs',
       parserOptions: {
-        projectService: true,
+        project: ['./tsconfig.eslint.json'], // 👈 clave
         tsconfigRootDir: import.meta.dirname,
+        sourceType: 'module', // 👈 matchea "NodeNext"
       },
+      globals: { ...globals.node, ...globals.jest },
     },
   },
-  {
-    rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-floating-promises': 'warn',
-      '@typescript-eslint/no-unsafe-argument': 'warn',
-    },
-  },
+  eslintPluginPrettierRecommended,
 );

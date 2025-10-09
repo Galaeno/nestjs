@@ -45,7 +45,7 @@ export class TasksController {
   @Get('/:id')
   @UseGuards(AuthGuard)
   getTask(
-    @Param('id', ValidateTaskIdPipe) id: any,
+    @Param('id', ValidateTaskIdPipe) id: unknown,
   ): Promise<Task | HttpException> {
     return this.taskService.getTask(id as number);
   }
