@@ -1,0 +1,9 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: nestjs
+    ports:
+      - '51213:5432' # 51213 en host -> 5432 en contenedor

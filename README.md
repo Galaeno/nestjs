@@ -1,4 +1,4 @@
-# nestjs
+# NestJS
 El curso será de: https://fazt.dev/contenido/nestjs
 Documentacion NestJS: https://docs.nestjs.com/
 
