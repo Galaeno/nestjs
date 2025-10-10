@@ -14,13 +14,13 @@ import {
 import { TasksService } from './tasks.service';
 import {
   CreateTask,
-  Task,
-  UpdateTask,
   DeleteTask,
+  Task,
   UpdatePartialyTask,
-} from './tasks.dto';
-import { ValidateTaskIdPipe } from './pipes/validate-task-id/validate-task-id.pipe';
-import { AuthGuard } from './guards/auth/auth.guard';
+  UpdateTask,
+} from './dto';
+import { ValidateTaskIdPipe } from './pipes/validate-task-id.pipe';
+import { AuthGuard } from '../../common/guards/auth.guards';
 
 @Controller('tasks')
 export class TasksController {
@@ -52,23 +52,34 @@ export class TasksController {
 
   @Post()
   createTask(@Body() task: CreateTask): Promise<CreateTask> {
-    return this.taskService.createTask(task);
+    return this.taskService.createTask({
+      status: task.status,
+      title: task.title,
+    });
   }
 
   @Put()
   updateTask(@Body() task: UpdateTask): Promise<UpdateTask | HttpException> {
-    return this.taskService.updateTask(task);
+    return this.taskService.updateTask({
+      id: task.id,
+      status: task.status,
+      title: task.title,
+    });
   }
 
   @Delete()
   deleteTask(@Body() task: DeleteTask): Promise<string | HttpException> {
-    return this.taskService.deleteTask(task);
+    return this.taskService.deleteTask(task.id);
   }
 
   @Patch()
   updatePartialyTask(
     @Body() task: UpdatePartialyTask,
   ): Promise<UpdatePartialyTask | HttpException> {
-    return this.taskService.updatePartialyTask(task);
+    return this.taskService.updatePartialyTask({
+      id: task.id,
+      status: task.status,
+      title: task.title,
+    });
   }
 }

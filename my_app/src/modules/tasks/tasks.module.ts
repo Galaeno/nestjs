@@ -6,12 +6,13 @@ import {
 } from '@nestjs/common';
 import { TasksController } from './tasks.controller';
 import { TasksService } from './tasks.service';
-import { LoggerMiddleware } from './logger/logger.middleware';
-import { PrismaService } from 'src/prisma.service';
+import { LoggerMiddleware } from '../../common/middleware/logger.middleware';
+import { PrismaService } from 'src/common/infra/prisma/prisma.service';
+import { TasksRepository } from './infra/tasks.repository';
 
 @Module({
   controllers: [TasksController],
-  providers: [TasksService, PrismaService],
+  providers: [TasksService, TasksRepository, PrismaService],
 })
 export class TasksModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
