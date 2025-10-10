@@ -1,24 +1,31 @@
 # NestJS
+
 El curso será de: https://fazt.dev/contenido/nestjs
 Documentacion NestJS: https://docs.nestjs.com/
 
 # Descripción
+
 Curso de NestJS: Desarrollo de Aplicaciones Backend Modernas en TypeScript
 Hey Coders, en este curso aprenderán las bases de NestJS, uno de los frameworks más populares de Node.js y TypeScript, ampliamente utilizado en proyectos de backend a gran escala.
 
 ## Introducción
+
 ¡Bienvenido al curso de NestJS! En este curso, exploraremos una de las plataformas más emocionantes y poderosas para el desarrollo de aplicaciones backend en el ecosistema de JavaScript/TypeScript.
 
 ## ¿Qué es NestJS?
+
 NestJS es un framework de Node.js que utiliza TypeScript para construir aplicaciones backend escalables y eficientes. Basado en los principios de Angular, NestJS ofrece una estructura modular y una arquitectura centrada en módulos, lo que facilita la creación y mantenimiento de aplicaciones complejas.
 
 ## ¿Por qué NestJS?
+
 - Productividad: NestJS proporciona una sintaxis clara y concisa, reduciendo el código repetitivo y mejorando la productividad del desarrollador.
 - Escalabilidad: Gracias a su enfoque modular y la inyección de dependencias, NestJS permite escalar aplicaciones de manera eficiente a medida que crecen en complejidad y tamaño.
 - Compatibilidad con TypeScript: Al estar construido con TypeScript, NestJS ofrece tipado estático y otras características avanzadas que facilitan el desarrollo de aplicaciones robustas y con menos errores.
 
 ## ¿Qué aprenderás en este curso?
+
 En este curso, cubriremos los siguientes temas:
+
 - Instalación y configuración de NestJS.
 - Fundamentos de NestJS: Controladores, Módulos, Servicios y más.
 - Integración con bases de datos: MongoDB, PostgreSQL, y otras a través de Prisma.
@@ -27,19 +34,23 @@ En este curso, cubriremos los siguientes temas:
 - Despliegue de aplicaciones NestJS en Railway junto a una base de datos.
 
 # Instalación y configuración de NestJS
+
 - Instalancion de NestJS / checkear version / ver comandos
+
 ```bash
-npm i -g @nestjs/cli 
+npm i -g @nestjs/cli
 nest -v
 nest
 ```
 
 ## Creamos nuevo proyecto
+
 ```bash
 nest new <nombre_proyecto>
 ```
 
 ## Ejecutamos el proyecto
+
 ```bash
 cd my_app
 pnpm run start
@@ -49,18 +60,22 @@ pnpm run lint
 ```
 
 ## Cambio iconos para que se usen los de NestJs y no AngularJS
+
 - F1 > Open Workspace Settings (JSON)
 - Agregar el json: "material-icon-theme.activeIconPack": "nest"
 
 # Estructura proyecto
+
 Este documento presenta **4 estructuras progresivas** para proyectos NestJS. Cada nivel incluye estructura de carpetas, **por qué/para qué**, **cuándo usarla**, **riesgos** y **cómo migrar** al siguiente nivel.
 
 ---
 
 ## 🟢 Nivel 1 — Básica (la típica de Nest)
+
 **Ideal para:** MVPs y servicios pequeños.
 
 **Estructura:**
+
 ```text
 src/
   main.ts
@@ -90,9 +105,11 @@ Separar DTOs y repos; preparar `common/` y `config/` (ver Nivel 2).
 ---
 
 ## 🟡 Nivel 2 — Intermedia modular (mejor higiene)
+
 **Ideal para:** APIs medianas con cross‑cutting claro.
 
 **Estructura:**
+
 ```text
 src/
   main.ts
@@ -134,9 +151,11 @@ Extraer reglas de negocio a **domain services** y definir **repos como interface
 ---
 
 ## 🟠 Nivel 3 — Capas limpias (Hexagonal sin CQRS)
+
 **Ideal para:** Dominios medianos/grandes. Aísla negocio de framework/infra.
 
 **Estructura:**
+
 ```text
 src/
   main.ts
@@ -174,17 +193,20 @@ Reglas no triviales, cambios de infraestructura frecuentes, varios equipos/PRs s
 **Riesgos:**  
 Más carpetas/boilerplate; necesita disciplina para no cruzar capas.
 
-**Migración:**  
-- Extraer lógica del service hacia `domain/services`.  
-- Definir `ports/` (interfaces) y adaptadores en `infrastructure/`.  
+**Migración:**
+
+- Extraer lógica del service hacia `domain/services`.
+- Definir `ports/` (interfaces) y adaptadores en `infrastructure/`.
 - Mantener controllers delgados (DTO ↔ service).
 
 ---
 
 ## 🔴 Nivel 4 — Avanzada (CQRS + Eventos + Proyecciones)
+
 **Ideal para:** Dominios complejos, auditoría, lectura pesada, integraciones event‑driven.
 
 **Estructura:**
+
 ```text
 src/
   main.ts
@@ -232,62 +254,67 @@ Pagos, órdenes, logística, integraciones por eventos, necesidades de consisten
 **Riesgos:**  
 Complejidad conceptual/operativa mayor. No aplicar si la app es CRUD simple.
 
-**Migración:**  
-- Dividir casos de uso entre **commands** (mutan estado) y **queries** (solo lectura).  
-- Introducir `event.publisher.port` y adaptadores (Kafka/SNS/SQS).  
+**Migración:**
+
+- Dividir casos de uso entre **commands** (mutan estado) y **queries** (solo lectura).
+- Introducir `event.publisher.port` y adaptadores (Kafka/SNS/SQS).
 - Agregar proyecciones sólo si hay dolor real en lecturas.
 
 ---
 
 ## 🧭 ¿Cuándo subir de nivel?
-- **1 → 2:** múltiples módulos y cross‑cutting disperso (errores, logs, auth).  
-- **2 → 3:** services gordos, tests lentos, cambios de infra duelen.  
+
+- **1 → 2:** múltiples módulos y cross‑cutting disperso (errores, logs, auth).
+- **2 → 3:** services gordos, tests lentos, cambios de infra duelen.
 - **3 → 4:** lecturas exigentes, auditoría fina, integraciones event‑driven.
 
 ---
 
 ## 💡 Tips transversales
-- **DTO ≠ Entidad**: validá DTOs con `class-validator` (pipe global) y mapeá a dominio.  
-- **Repos como interfaz** desde Nivel 2: prepara el terreno para Hexagonal.  
-- **Config tipada/validada**: `@nestjs/config` + zod o `class-validator`.  
-- **Observabilidad**: logs JSON (Pino), tracing (OpenTelemetry), métricas por request.  
-- **Errores**: `ExceptionFilter` global (mapea dominio → HTTP 400/409/422/5xx).  
+
+- **DTO ≠ Entidad**: validá DTOs con `class-validator` (pipe global) y mapeá a dominio.
+- **Repos como interfaz** desde Nivel 2: prepara el terreno para Hexagonal.
+- **Config tipada/validada**: `@nestjs/config` + zod o `class-validator`.
+- **Observabilidad**: logs JSON (Pino), tracing (OpenTelemetry), métricas por request.
+- **Errores**: `ExceptionFilter` global (mapea dominio → HTTP 400/409/422/5xx).
 - **Auth**: `Guards` + decorators; mantené services libres de transporte.
 
 ---
 
 ## 📝 Resumen rápido
-- **Nivel 1 →** velocidad y simplicidad.  
-- **Nivel 2 →** organización transversal.  
-- **Nivel 3 →** mantenibilidad y desacoplamiento de infra.  
+
+- **Nivel 1 →** velocidad y simplicidad.
+- **Nivel 2 →** organización transversal.
+- **Nivel 3 →** mantenibilidad y desacoplamiento de infra.
 - **Nivel 4 →** escalabilidad (reads/writes) y event‑driven.
 
 ## Resumen
+
 ### Mapa mental (rápido)
 
-- **DTO (request/response)** → *capa de aplicación/HTTP*. Son **clases** con `class-validator` / Swagger.  
+- **DTO (request/response)** → _capa de aplicación/HTTP_. Son **clases** con `class-validator` / Swagger.
   - Viven en: `src/modules/<feature>/dto/`
   - Usados en controllers/resolvers.
   - JSON-friendly (si hay `bigint`, exponer como `string`).
 
-- **Entity (modelo de dominio)** → *núcleo del negocio*. Reglas/invariantes y posible comportamiento (`toggle()`, etc.).  
+- **Entity (modelo de dominio)** → _núcleo del negocio_. Reglas/invariantes y posible comportamiento (`toggle()`, etc.).
   - Viven en: `src/modules/<feature>/domain/`
   - Puro TypeScript (sin Nest/Prisma/HTTP).
 
-- **Ports (interfaces)** → contratos que el dominio necesita (p.ej. `TasksRepository`).  
+- **Ports (interfaces)** → contratos que el dominio necesita (p.ej. `TasksRepository`).
   - Viven en: `src/modules/<feature>/domain/ports/`
   - Puro TypeScript. No dependen de libs externas.
 
-- **Infra (adapters)** → implementaciones concretas de los **ports** con tecnología real (Prisma/Redis/HTTP).  
+- **Infra (adapters)** → implementaciones concretas de los **ports** con tecnología real (Prisma/Redis/HTTP).
   - Viven en: `src/modules/<feature>/infra/`
   - Dependen de Prisma/Nest/etc.
   - Mapean **ORM ↔ Entity**.
 
-- **Service de aplicación (Nest)** → orquesta casos de uso: llama **ports**, maneja transacciones, mapea **DTO ↔ Entity**, publica eventos.  
+- **Service de aplicación (Nest)** → orquesta casos de uso: llama **ports**, maneja transacciones, mapea **DTO ↔ Entity**, publica eventos.
   - Archivo típico: `src/modules/<feature>/<feature>.service.ts`
   - **No** debería codificar políticas complejas (delegarlas al dominio).
 
-- **Service de dominio (opcional)** → reglas/políticas puras que no pertenecen a una sola Entity o involucran varias.  
+- **Service de dominio (opcional)** → reglas/políticas puras que no pertenecen a una sola Entity o involucran varias.
   - Viven en: `src/modules/<feature>/domain/services/`
   - Puro TS, sin infra.
 
@@ -355,8 +382,8 @@ src/
 
 ### Cuándo va **Service en dominio** vs **Service en aplicación**
 
-- **Dominio**: políticas puras/algoritmos/reglas cross-entity sin infra.  
-  - + testeable sin DB/HTTP, + reusabilidad.
+- **Dominio**: políticas puras/algoritmos/reglas cross-entity sin infra.
+  - - testeable sin DB/HTTP, + reusabilidad.
 - **Aplicación**: orquestación; llama repos, mapea DTO↔Entity, maneja transacciones/eventos.
 
 **Regla de oro:** si necesita librerías externas o coordina dependencias → **aplicación**. Si es solo lógica de negocio pura → **dominio**.
@@ -366,17 +393,25 @@ src/
 ### Ejemplos breves
 
 #### 1) Entity (dominio)
+
 ```ts
 // domain/task.entity.ts
 export class Task {
-  constructor(public readonly id: bigint, public title: string, public status: boolean) {
+  constructor(
+    public readonly id: bigint,
+    public title: string,
+    public status: boolean,
+  ) {
     if (!title?.trim()) throw new Error('Título requerido');
   }
-  toggle() { this.status = !this.status; }
+  toggle() {
+    this.status = !this.status;
+  }
 }
 ```
 
 #### 2) Port (contrato)
+
 ```ts
 // domain/ports/tasks.repository.ts
 import { Task } from '../task.entity';
@@ -388,6 +423,7 @@ export interface TasksRepository {
 ```
 
 #### 3) Infra (implementación del port con Prisma)
+
 ```ts
 // infra/prisma-tasks.repository.ts
 import { Injectable } from '@nestjs/common';
@@ -423,6 +459,7 @@ export class PrismaTasksRepository implements TasksRepository {
 ```
 
 #### 4) Service de aplicación (Nest)
+
 ```ts
 // tasks.service.ts
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
@@ -431,7 +468,9 @@ import { TasksRepository } from './domain/ports/tasks.repository';
 
 @Injectable()
 export class TasksService {
-  constructor(@Inject(TASKS_REPOSITORY) private readonly repo: TasksRepository) {}
+  constructor(
+    @Inject(TASKS_REPOSITORY) private readonly repo: TasksRepository,
+  ) {}
 
   async getTask(id: bigint) {
     const t = await this.repo.findById(id);
@@ -442,9 +481,14 @@ export class TasksService {
 ```
 
 #### 5) Controller + DTO (HTTP)
+
 ```ts
 // dto/task.response.ts
-export class TaskResponse { id!: string; title!: string; status!: boolean; }
+export class TaskResponse {
+  id!: string;
+  title!: string;
+  status!: boolean;
+}
 
 // tasks.controller.ts
 import { Controller, Get, Param } from '@nestjs/common';
@@ -457,7 +501,9 @@ export class TasksController {
   constructor(private readonly service: TasksService) {}
 
   @Get(':id')
-  async findOne(@Param('id', ParseBigIntPipe) id: bigint): Promise<TaskResponse> {
+  async findOne(
+    @Param('id', ParseBigIntPipe) id: bigint,
+  ): Promise<TaskResponse> {
     const t = await this.service.getTask(id);
     return { id: t.id.toString(), title: t.title, status: t.status };
   }
@@ -468,24 +514,27 @@ export class TasksController {
 
 ### Checklist rápido
 
-- [ ] **DTOs**: clases (no interfaces), validación y Swagger; response JSON-friendly.  
-- [ ] **Entities**: reglas + comportamiento; sin Nest/Prisma.  
-- [ ] **Ports**: interfaces en `domain/ports`; 0 dependencias externas.  
-- [ ] **Infra**: adapters que implementan ports y mapean ORM↔Entity.  
-- [ ] **Services (aplicación)**: orquestación; dependen de ports (no de Prisma).  
-- [ ] **Opcional**: *domain services* para políticas complejas.  
+- [ ] **DTOs**: clases (no interfaces), validación y Swagger; response JSON-friendly.
+- [ ] **Entities**: reglas + comportamiento; sin Nest/Prisma.
+- [ ] **Ports**: interfaces en `domain/ports`; 0 dependencias externas.
+- [ ] **Infra**: adapters que implementan ports y mapean ORM↔Entity.
+- [ ] **Services (aplicación)**: orquestación; dependen de ports (no de Prisma).
+- [ ] **Opcional**: _domain services_ para políticas complejas.
 - [ ] **Common**: solo cross-cutting técnico (no negocio).
 
 ---
 
 ### TL;DR (una línea)
+
 **Dominio** = reglas puras + contratos (entities/ports); **Infra** = implementación real de esos contratos; **Aplicación** = orquesta y mapea DTO↔dominio.  
-Con Prisma: mapeá **Prisma ↔ Entity** en *infra*, y **Entity ↔ DTO** en el *controller/service*.
+Con Prisma: mapeá **Prisma ↔ Entity** en _infra_, y **Entity ↔ DTO** en el _controller/service_.
 
 ---
 
 # Fundamentos de NestJS
+
 ## Modules
+
 Todo en Nest vive dentro de **módulos**. Un módulo agrupa **controladores**, **servicios** y **providers** relacionados.
 
 ```ts
@@ -507,6 +556,7 @@ export class ProductosModule {}
 - `exports`: qué providers exponemos a módulos consumidores.
 
 **AppModule** (raíz) compone el resto:
+
 ```ts
 @Module({
   imports: [ProductosModule],
@@ -515,19 +565,25 @@ export class AppModule {}
 ```
 
 - Se va a usar nest generate
+
 ```bash
 nest g <opcion> <nombre>
 ```
+
 - Para ver los comandos posibles
+
 ```bash
 nest g --help
 ```
+
 - Creacion de modulo con nombre "tasks"
+
 ```bash
 nest g module tasks
 ```
 
 ## Controllers
+
 Definen **rutas** y manejan **requests/responses**. Son **delgados**; delegan lógica al **servicio**.
 [DOC](https://docs.nestjs.com/controllers)
 
@@ -565,11 +621,13 @@ Parámetros: `@Param`, `@Query`, `@Body`, `@Headers`, `@Req`, `@Res`, etc.
 - En caso que haya mas niveles, ejemplo en el Get esta /task, para acceder sera: http://localhost:4000/tasks/task
 
 - Creacion de controlador con nombre "tasks"
+
 ```bash
 nest g co tasks
 ```
 
 ## Services
+
 Encapsulan **lógica de negocio** y acceso a datos. Son **providers** que se **inyectan**.
 
 ```ts
@@ -602,10 +660,13 @@ export class ProductosService {
 **DI (Inyección de dependencias)**: Nest resuelve instancias según **scope** y **módulo**.
 
 - Creacion de controlador con nombre "tasks"
+
 ```bash
 nest g s tasks
 ```
+
 - Se agregan en los controllers, o bien, donde sean necesarios de la siguiente forma:
+
 ```ts
 import { Controller, Get } from '@nestjs/common';
 import { TasksService } from './tasks.service';
@@ -622,6 +683,7 @@ export class TasksController {
 ```
 
 ## DTOs y Validación
+
 Para validar entrada y documentar contratos, usamos **DTOs** con `class-validator` + `class-transformer` y el **ValidationPipe**.
 
 ```bash
@@ -649,7 +711,9 @@ export class CreateProductoDto {
 - **`transform`**: castea tipos (query/body) al DTO.
 
 ## Codigos HTTP
+
 Usando un decorador se puede devolver el codigo http en el controller
+
 ```ts
 @Get('/notFound')
 @HttpCode(404)
@@ -659,7 +723,9 @@ pageNotFound() {
 ```
 
 ## Pipes
+
 Transforman/validan datos antes del handler.
+
 ```ts
 import { ParseIntPipe } from '@nestjs/common';
 @Get(':id')
@@ -675,11 +741,13 @@ getTask(@Param('id', ValidateTaskIdPipe) id: any): Task | HttpException {
 ```
 
 - Creacion de pipe con nombre "validateTask"
+
 ```bash
 nest g pi tasks/pipes/validateTask
 ```
 
 ## Guards (Auth/Permisos)
+
 ```ts
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 
@@ -697,14 +765,17 @@ getTask(@Param('id', ValidateTaskIdPipe) id: any): Task | HttpException {
     return this.taskService.getTask(id as number);
 }
 ```
+
 Usar con `@UseGuards(AuthGuard)` o a nivel módulo/controlador.
 
 - Creacion de guard con nombre "auth"
+
 ```bash
 nest g gu tasks/guards/auth
 ```
 
 ## Middleware
+
 Se ejecuta **antes** del pipeline de Nest (tipo Express).
 
 ```ts
@@ -721,13 +792,16 @@ export class LoggerMiddleware implements NestMiddleware {
 ```
 
 - Creacion de middleware con nombre "logger"
+
 ```bash
 nest g mi tasks/logger
 ```
 
 ## Resource
+
 Para cuando se quiere crear varios recursos al mismo tiempo y no primero controller, luego service, etc.
 Al ejecutar el comando, consulta que capa de transporte se quiere usar:
+
 - REST API
 - GraphQL (code first)
 - GraphQL (schema first)
@@ -735,6 +809,7 @@ Al ejecutar el comando, consulta que capa de transporte se quiere usar:
 - webSockets
 
 Al elegir REST API pregunta si se quiere generar un CRUD, al colocar si, creará:
+
 - module
 - controller
 - service
@@ -742,21 +817,28 @@ Al elegir REST API pregunta si se quiere generar un CRUD, al colocar si, creará
 - entity
 
 - Creacion de recursos para "users"
+
 ```bash
 nest g res users
 ```
 
 ## Base de Datos (Persistencia)
+
 Se puede usar cualquier base, a modo ejemplo, se usara Prisma y TypeORM
 
 ## Prisma (recomendado por DX)
+
 https://docs.nestjs.com/recipes/prisma
+
 1. Se instala e inicia prisma
+
 ```bash
 pnpm add prisma @prisma/client
 pnpm prisma init
 ```
+
 2. Al usar docker, crear el archivo y ejecutarlo
+
 ```yaml
 services:
   db:
@@ -768,15 +850,21 @@ services:
     ports:
       - '51213:5432' # 51213 en host -> 5432 en contenedor
 ```
+
 3. Levanto docker para crear contenedor con el yaml anterior
+
 ```bash
 docker-compose up -d
 ```
+
 4. Crear/modificar archivo de variables de entorno .env para agregar la conexión a la base
+
 ```js
-DATABASE_URL="postgresql://user:pass@localhost:port/db_name?schema=public"
+DATABASE_URL = 'postgresql://user:pass@localhost:port/db_name?schema=public';
 ```
+
 5. Modificar archivo /prisma/schema.prisma para crear los modelos a usar
+
 ```prisma
 // Creado automaticamente
 generator client {
@@ -797,11 +885,15 @@ model User {
   name  String
 }
 ```
+
 6. Ejecutar prisma. Esto va a ejecutar lo que este en schema.prisma para agregarlo a la db de la config que este en el archivo .env
+
 ```bash
 pnpm prisma migrate dev --name init
 ```
+
 7. Ejemplo de uso:
+
 ```ts
 // service
 import { PrismaService } from '../../prisma.service';
@@ -823,15 +915,17 @@ import { PrismaService } from 'src/prisma.service';
 })
 ```
 
-
 ## Documentacion (swagger)
 https://docs.nestjs.com/openapi/introduction
 
 1. Se agrega como dependencia
+
 ```bash
 pnpm add @nestjs/swagger
 ```
+
 2. Se agrega codigo al main.ts
+
 ```ts
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
@@ -855,20 +949,28 @@ bootstrap();
 ```
 
 ## CORS
+
 1. Ingresa a about:blank
 2. En la consola ingresa a: fetch('http://localhost:4000/tasks'), se deberia ver error:
+
 ```js
-Access to fetch at 'http://localhost:4000/tasks' from origin 'null' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. If an opaque response serves your needs, set the request's mode to 'no-cors' to fetch the resource with CORS disabled. 
+Access to fetch at 'http://localhost:4000/tasks' from origin 'null' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. If an opaque response serves your needs, set the request's mode to 'no-cors' to fetch the resource with CORS disabled.
 ```
+
 3. Agregar en main.ts
+
 ```ts
 app.enableCors();
 ```
+
 4. Volver a correr fetch('http://localhost:4000/tasks') y ver que retorna una promesa
+
 ```js
 Promise {<pending>}
 ```
+
 5. Tratarla para ver la respuesta:
+
 ```js
 fetch('http://localhost:4000/tasks')
   .then(r => r.json())
@@ -880,9 +982,16 @@ fetch('http://localhost:4000/tasks')
 ```
 
 ## Interceptors (logging, mapping, cache)
-Interceptor para *cross-cutting concerns* (logging, mapping, caching). Se usa para Transformar `data`, medir tiempos, etc.  
+
+Interceptor para _cross-cutting concerns_ (logging, mapping, caching). Se usa para Transformar `data`, medir tiempos, etc.
+
 ```ts
-import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
+import {
+  CallHandler,
+  ExecutionContext,
+  Injectable,
+  NestInterceptor,
+} from '@nestjs/common';
 import { map } from 'rxjs/operators';
 @Injectable()
 export class WrapInterceptor implements NestInterceptor {
@@ -893,13 +1002,21 @@ export class WrapInterceptor implements NestInterceptor {
 ```
 
 ## Exception Filters
+
 ```ts
-import { ExceptionFilter, Catch, ArgumentsHost, HttpException } from '@nestjs/common';
+import {
+  ExceptionFilter,
+  Catch,
+  ArgumentsHost,
+  HttpException,
+} from '@nestjs/common';
 @Catch(HttpException)
 export class HttpErrorFilter implements ExceptionFilter {
   catch(exception: HttpException, host: ArgumentsHost) {
     const res = host.switchToHttp().getResponse();
-    res.status(exception.getStatus()).json({ ok: false, message: exception.message });
+    res
+      .status(exception.getStatus())
+      .json({ ok: false, message: exception.message });
   }
 }
 ```
@@ -907,6 +1024,7 @@ export class HttpErrorFilter implements ExceptionFilter {
 ---
 
 # Ciclo de vida, alcance (scope) y ModuleRef
+
 - **Lifecycle hooks**: `OnModuleInit`, `OnModuleDestroy`, `BeforeApplicationShutdown`.
 - **Scopes**: `DEFAULT` (singleton), `REQUEST` (por request), `TRANSIENT`.
 - **ModuleRef**: resolver providers dinámicamente o crear instancias con scope específico.
@@ -914,12 +1032,15 @@ export class HttpErrorFilter implements ExceptionFilter {
 ```ts
 import { Injectable, Scope } from '@nestjs/common';
 @Injectable({ scope: Scope.REQUEST })
-export class RequestScopedService {/* ... */}
+export class RequestScopedService {
+  /* ... */
+}
 ```
 
 ---
 
 # Cache y Logging
+
 - **CacheModule** (memory/redis) para cachear respuestas o datos.
 - **Logger**: `app.useLogger` o `Logger` de Nest; integrá con **Winston/Pino** para producción.
 
@@ -932,12 +1053,14 @@ export class AppModule {}
 ---
 
 # WebSockets y Microservicios (visión rápida)
+
 - **WebSockets**: `@WebSocketGateway()` y `@SubscribeMessage()` con `socket.io` o `ws`.
 - **Microservices**: `@nestjs/microservices` (TCP, Redis, NATS, Kafka). Útil para **event-driven**.
 
 ---
 
 # Testing (Unit y E2E)
+
 - **Unit**: testeás servicios y controladores aislados con `TestingModule`.
 - **E2E**: levantás la app en memoria y pegás requests reales (supertest).
 
@@ -968,13 +1091,285 @@ import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 
 let app: INestApplication;
-beforeAll(async () => { /* crear TestingModule + app.init() */ });
-it('GET /productos', () => request(app.getHttpServer()).get('/productos').expect(200));
+beforeAll(async () => {
+  /* crear TestingModule + app.init() */
+});
+it('GET /productos', () =>
+  request(app.getHttpServer()).get('/productos').expect(200));
 ```
 
 ---
 
+# 🚀 Primer deploy de **NestJS + Prisma** en **Heroku** (con Postgres)
+
+**Objetivo:** dejar tu API de NestJS corriendo en Heroku con una base de datos Postgres y migraciones de Prisma aplicadas.
+
+> Ambiente asumido: **macOS** (con Homebrew). Si usás Linux/Windows avisame y te lo adapto.  
+> Requisitos: tenés cuenta en Heroku y tu repo Nest listo (usa `process.env.PORT` en `main.ts`).
+
+---
+
+## 1) Instalar Heroku CLI y loguearte
+
+```bash
+# instalar Heroku CLI
+brew tap heroku/brew
+brew install heroku
+
+# chequear
+heroku --version
+
+# login en navegador
+heroku login
+```
+
+> Si no tenés `brew`: https://devcenter.heroku.com/articles/heroku-cli
+
+---
+
+## 2) Preparar Prisma para Postgres
+
+Asegurate de que tu `prisma/schema.prisma` apunte a Postgres con env var:
+
+```prisma
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+```
+
+Creá tu primera migración local y generá el cliente:
+
+```bash
+# desde el root del repo
+npx prisma migrate dev --name init
+npx prisma generate
+```
+
+> **Importante:** committeá la carpeta `prisma/migrations/**` al repo.
+
+---
+
+## 3) Scripts de `package.json`
+
+Asegurate de tener estos scripts (podés copiar/pegar):
+
+```json
+{
+  "engines": { "node": "22.x" },
+  "scripts": {
+    "start": "nest start",
+    "build": "nest build",
+    "start:prod": "node dist/main.js",
+    "postinstall": "prisma generate",
+    "migrate:deploy": "prisma migrate deploy",
+    "seed": "prisma db seed"
+  },
+  "prisma": { "seed": "ts-node prisma/seed.ts" } // si vas a seedear
+}
+```
+
+- `postinstall`: genera Prisma Client durante el build en Heroku.
+- `migrate:deploy`: aplica todas las migraciones pendientes en la DB.
+- `start:prod`: arranca la app compilada desde `dist`.
+
+> Si usás **pnpm** en lugar de npm, más abajo hay una sección opcional.
+
+---
+
+## 4) Procfile (obligatorio en Heroku)
+
+En la raíz del repo, creá un archivo **`Procfile`** (sin extensión):
+
+```
+release: npm run migrate:deploy
+web: node dist/main.js
+```
+
+- **release**: corre antes de cada release para aplicar migraciones.
+- **web**: comando que ejecuta el dyno web (tu API).
+
+> Heroku automáticamente va a compilar tu app con `npm run build` durante el deploy.
+
+---
+
+## 5) Cierre prolijo de Prisma (opcional pero recomendado)
+
+En `prisma.service.ts`:
+
+```ts
+import { Injectable, OnModuleInit, INestApplication } from '@nestjs/common';
+import { PrismaClient } from '@prisma/client';
+
+@Injectable()
+export class PrismaService extends PrismaClient implements OnModuleInit {
+  async onModuleInit() {
+    await this.$connect();
+  }
+  async enableShutdownHooks(app: INestApplication) {
+    this.$on('beforeExit', async () => {
+      await app.close();
+    });
+  }
+}
+```
+
+En `main.ts`:
+
+```ts
+const app = await NestFactory.create(AppModule);
+const prisma = app.get(PrismaService);
+await prisma.enableShutdownHooks(app);
+await app.listen(process.env.PORT ?? 4000);
+```
+
+---
+
+## 6) Crear la app en Heroku y agregar Postgres
+
+```bash
+# (desde la carpeta del repo con git inicializado)
+heroku create nombre-de-tu-app
+
+# agregar Postgres (plan ejemplo)
+heroku addons:create heroku-postgresql:hobby-basic -a nombre-de-tu-app
+
+# ver variables configuradas por Heroku (incluye DATABASE_URL)
+heroku config -a nombre-de-tu-app
+```
+
+### Forzar SSL en la URL (recomendado)
+
+Algunas conexiones requieren `sslmode=require`. Si tu `DATABASE_URL` no lo trae, ejecutá:
+
+```bash
+heroku config:set DATABASE_URL="$(heroku config:get DATABASE_URL -a nombre-de-tu-app)?sslmode=require" -a nombre-de-tu-app
+```
+
+> Si más adelante usás **pgBouncer** (pooling), usá:  
+> `?sslmode=require&pgbouncer=true&connection_limit=1`
+
+---
+
+## 7) Build & Deploy
+
+```bash
+# compilar local (opcional)
+npm run build
+
+# push a Heroku (main o master según tu rama)
+git push heroku main
+# o
+git push heroku master
+```
+
+Durante el deploy Heroku hará:
+
+1. Instalar dependencias → `postinstall` (→ `prisma generate`)
+2. Compilar (`nest build`)
+3. Fase **release** → `npm run migrate:deploy`
+4. Iniciar el dyno → `node dist/main.js`
+
+> Si querés correr migraciones manualmente:  
+> `heroku run -a nombre-de-tu-app npm run migrate:deploy`
+
+---
+
+## 8) Seed (opcional, una sola vez)
+
+Si tenés `prisma/seed.ts`, corrélo así:
+
+```bash
+heroku run -a nombre-de-tu-app npm run seed
+```
+
+---
+
+## 9) Probar y ver logs
+
+```bash
+# abrir la app (si tenés algún endpoint GET en / o /health)
+heroku open -a nombre-de-tu-app
+
+# ver logs en vivo
+heroku logs -t -a nombre-de-tu-app
+```
+
+---
+
+## 10) Variables de entorno adicionales
+
+Si tu app necesita otras env vars (JWT_SECRET, CORS_ORIGIN, etc.):
+
+```bash
+heroku config:set JWT_SECRET="loquesea" -a nombre-de-tu-app
+heroku config:set CORS_ORIGIN="https://tu-front.vercel.app" -a nombre-de-tu-app
+```
+
+---
+
+## (Opcional) Usar **pnpm** en Heroku
+
+Si preferís deploy con `pnpm`:
+
+```bash
+heroku buildpacks:add -a nombre-de-tu-app https://github.com/pnpm/heroku-buildpack-pnpm
+heroku buildpacks:add -a nombre-de-tu-app heroku/nodejs
+```
+
+En `package.json` podés agregar:
+
+```json
+{
+  "scripts": {
+    "heroku-postbuild": "pnpm prisma generate && pnpm build"
+  }
+}
+```
+
+Y en el **Procfile** reemplazar `npm` por `pnpm` si querés:
+
+```
+release: pnpm run migrate:deploy
+web: node dist/main.js
+```
+
+---
+
+## Troubleshooting común
+
+- **Error de SSL / “connection error”**  
+  Asegurate que `DATABASE_URL` tenga `?sslmode=require`. Volvé a setearla y redeployá.
+
+- **Pool de conexiones saturado**  
+  Considerá **pgBouncer** y sumale `&pgbouncer=true&connection_limit=1` a la URL.
+
+- **Migraciones no corren**  
+  Revisá que exista `Procfile` y que tenga el `release: npm run migrate:deploy`. Mirá `heroku logs` en la fase release.
+
+- **La app no levanta**  
+  Confirmá que **`main.ts`** usa `process.env.PORT` y que estás ejecutando `web: node dist/main.js`.
+
+---
+
+## Checklist final
+
+- [ ] `schema.prisma` con `provider="postgresql"` y `url=env("DATABASE_URL")`
+- [ ] Migraciones **commiteadas** (`prisma/migrations/**`)
+- [ ] `package.json` con `postinstall`, `build`, `migrate:deploy`, `start:prod`
+- [ ] **Procfile** con `release:` y `web:`
+- [ ] `DATABASE_URL` en Heroku (con `sslmode=require`)
+- [ ] (Opcional) Seed corrido una vez
+- [ ] App responde en `https://nombre-de-tu-app.herokuapp.com` (o el dominio asignado)
+
+---
+
 # Buenas prácticas
+
 - **Controladores delgados**, **servicios gordos** (dominio).
 - **DTOs + ValidationPipe** global (`whitelist`, `transform`).
 - **Módulos por feature**, **exports** mínimos necesarios.
@@ -988,6 +1383,7 @@ it('GET /productos', () => request(app.getHttpServer()).get('/productos').expect
 ---
 
 # Errores comunes
+
 1. Meter lógica de negocio en controladores (difícil de testear y reusar).
 2. No usar DTOs/validación → endpoints frágiles e inseguros.
 3. `exports` de módulos innecesarios → acoplamiento circular.
@@ -998,6 +1394,7 @@ it('GET /productos', () => request(app.getHttpServer()).get('/productos').expect
 ---
 
 # Roadmap de crecimiento
+
 - **Auth** con Passport/JWT, refresh tokens, RBAC/ABAC.
 - **Capa de dominio** separada + **DDD**/Hexagonal.
 - **Microservicios** y mensajería (eventos/colas).
