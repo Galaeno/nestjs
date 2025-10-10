@@ -4,7 +4,6 @@ import {
   Delete,
   Get,
   HttpCode,
-  HttpException,
   Param,
   Patch,
   Post,
@@ -19,8 +18,9 @@ import {
   UpdatePartialyTask,
   UpdateTask,
 } from './dto';
-import { ValidateTaskIdPipe } from './pipes/validate-task-id.pipe';
+import { ValidateIdPipe } from '../../common/pipes/validate-id.pipe';
 import { AuthGuard } from '../../common/guards/auth.guards';
+import { Task as ITask } from './domain/task.entity';
 
 @Controller('tasks')
 export class TasksController {
@@ -33,7 +33,15 @@ export class TasksController {
         ? 100
         : clientLimit
       : 10;
-    return await this.taskService.getTasks(limit);
+    const tasks: ITask[] = await this.taskService.getTasks(limit);
+
+    return tasks.map(
+      (t: ITask): Task => ({
+        id: t.id.toString(),
+        status: t.status,
+        title: t.title,
+      }),
+    );
   }
 
   @Get('/notFound')
@@ -44,42 +52,64 @@ export class TasksController {
 
   @Get('/:id')
   @UseGuards(AuthGuard)
-  getTask(
-    @Param('id', ValidateTaskIdPipe) id: unknown,
-  ): Promise<Task | HttpException> {
-    return this.taskService.getTask(id as number);
+  async getTask(@Param('id', ValidateIdPipe) id: unknown): Promise<Task> {
+    const task: ITask = await this.taskService.getTask(id as number);
+
+    return {
+      id: task.id.toString(),
+      status: task.status,
+      title: task.title,
+    };
   }
 
   @Post()
-  createTask(@Body() task: CreateTask): Promise<CreateTask> {
-    return this.taskService.createTask({
+  async createTask(@Body() task: CreateTask): Promise<Task> {
+    const newTask: ITask = await this.taskService.createTask({
       status: task.status,
       title: task.title,
     });
+
+    return {
+      id: newTask.id.toString(),
+      status: newTask.status,
+      title: newTask.title,
+    };
   }
 
   @Put()
-  updateTask(@Body() task: UpdateTask): Promise<UpdateTask | HttpException> {
-    return this.taskService.updateTask({
-      id: task.id,
+  async updateTask(@Body() task: UpdateTask): Promise<UpdateTask> {
+    const updatedTask: ITask = await this.taskService.updateTask({
+      id: parseInt(task.id),
       status: task.status,
       title: task.title,
     });
+
+    return {
+      id: updatedTask.id.toString(),
+      status: updatedTask.status,
+      title: updatedTask.title,
+    };
   }
 
   @Delete()
-  deleteTask(@Body() task: DeleteTask): Promise<string | HttpException> {
-    return this.taskService.deleteTask(task.id);
+  deleteTask(@Body() task: DeleteTask): Promise<string> {
+    return this.taskService.deleteTask(parseInt(task.id));
   }
 
   @Patch()
-  updatePartialyTask(
+  async updatePartialyTask(
     @Body() task: UpdatePartialyTask,
-  ): Promise<UpdatePartialyTask | HttpException> {
-    return this.taskService.updatePartialyTask({
-      id: task.id,
+  ): Promise<UpdatePartialyTask> {
+    const updatedTask: ITask = await this.taskService.updatePartialyTask({
+      id: parseInt(task.id),
       status: task.status,
       title: task.title,
     });
+
+    return {
+      id: updatedTask.id.toString(),
+      status: updatedTask.status,
+      title: updatedTask.title,
+    };
   }
 }

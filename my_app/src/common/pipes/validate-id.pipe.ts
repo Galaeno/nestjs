@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 
 @Injectable()
-export class ValidateTaskIdPipe implements PipeTransform {
+export class ValidateIdPipe implements PipeTransform {
   transform(id: any) {
     if (isNaN(id)) {
       throw new HttpException(

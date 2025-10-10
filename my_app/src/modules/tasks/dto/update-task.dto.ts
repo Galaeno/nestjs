@@ -1,19 +1,13 @@
-import {
-  IsString,
-  IsNumber,
-  IsBoolean,
-  MinLength,
-  MaxLength,
-} from 'class-validator';
+import { IsString, IsBoolean, MinLength, MaxLength } from 'class-validator';
 
 export class UpdateTask {
-  @IsNumber() id: number;
+  @IsString() id: string;
 
   @IsString()
   @MinLength(3)
   @MaxLength(30)
-  title?: string;
+  title: string;
 
   @IsBoolean()
-  status?: boolean;
+  status: boolean;
 }

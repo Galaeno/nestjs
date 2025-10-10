@@ -3,3 +3,8 @@ export interface Task {
   title: string;
   status: boolean;
 }
+
+export interface NewTask {
+  title: string;
+  status: boolean;
+}

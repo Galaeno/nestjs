@@ -1,6 +1,5 @@
 import {
   IsString,
-  IsNumber,
   IsBoolean,
   MinLength,
   MaxLength,
@@ -8,15 +7,15 @@ import {
 } from 'class-validator';
 
 export class UpdatePartialyTask {
-  @IsNumber() id: number;
+  @IsString() id: string;
 
   @IsString()
   @MinLength(3)
   @MaxLength(30)
   @IsOptional()
-  title?: string;
+  title: string;
 
   @IsBoolean()
   @IsOptional()
-  status?: boolean;
+  status: boolean;
 }

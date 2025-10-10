@@ -1,11 +1,11 @@
-import { Injectable, NotFoundException, HttpException } from '@nestjs/common';
-import type { Task, NewTask, UpdateTask } from '../domain';
-import type { ITasksRepository } from '../domain/infra/tasks.repository';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import type { Task, NewTask } from '../domain/task.entity';
+import type { TaskRepository as ITaskRepository } from '../domain/ports/tasks.repository';
 import { PrismaService } from '../../../common/infra/prisma/prisma.service';
 import { Task as TaskDB } from '@prisma/client';
 
 @Injectable()
-export class TasksRepository implements ITasksRepository {
+export class TaskRepository implements ITaskRepository {
   constructor(private prismaService: PrismaService) {}
 
   async getTasks(limit: number): Promise<Task[]> {
@@ -22,7 +22,7 @@ export class TasksRepository implements ITasksRepository {
     );
   }
 
-  async getTask(id: number): Promise<Task | HttpException> {
+  async getTask(id: number): Promise<Task> {
     try {
       const tasksResult: TaskDB =
         await this.prismaService.task.findUniqueOrThrow({
@@ -37,17 +37,17 @@ export class TasksRepository implements ITasksRepository {
         status: tasksResult.status,
       };
     } catch {
-      return new NotFoundException(`La tarea con id [${id}] no se encontró`);
+      throw new NotFoundException(`La tarea con id [${id}] no se encontró`);
     }
   }
 
-  async createTask(data: NewTask): Promise<NewTask> {
+  async createTask(data: NewTask): Promise<Task> {
     return await this.prismaService.task.create({
       data,
     });
   }
 
-  async updateTask(data: UpdateTask): Promise<UpdateTask | HttpException> {
+  async updateTask(data: Task): Promise<Task> {
     try {
       return await this.prismaService.task.update({
         data,
@@ -56,13 +56,13 @@ export class TasksRepository implements ITasksRepository {
         },
       });
     } catch {
-      return new NotFoundException(
+      throw new NotFoundException(
         `La tarea con id [${data.id}] no se encontró`,
       );
     }
   }
 
-  async deleteTask(id: number): Promise<string | HttpException> {
+  async deleteTask(id: number): Promise<string> {
     try {
       await this.prismaService.task.delete({
         where: {
@@ -72,14 +72,13 @@ export class TasksRepository implements ITasksRepository {
 
       return `Tarea con id ${id} eliminada`;
     } catch {
-      return new NotFoundException(`La tarea con id [${id}] no se encontró`);
+      throw new NotFoundException(`La tarea con id [${id}] no se encontró`);
     }
   }
 
-  async updatePartialyTask(
-    data: UpdateTask,
-  ): Promise<UpdateTask | HttpException> {
+  async updatePartialyTask(data: Task): Promise<Task> {
     try {
+      console.log(data);
       return await this.prismaService.task.update({
         data,
         where: {
@@ -87,7 +86,7 @@ export class TasksRepository implements ITasksRepository {
         },
       });
     } catch {
-      return new NotFoundException(
+      throw new NotFoundException(
         `La tarea con id [${data.id}] no se encontró`,
       );
     }
