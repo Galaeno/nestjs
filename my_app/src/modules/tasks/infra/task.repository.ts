@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Task, NewTask } from '../domain/task.entity';
-import type { TaskRepository as ITaskRepository } from '../domain/ports/tasks.repository';
+import type { TaskRepository as ITaskRepository } from '../domain/ports/task.repository';
 import { PrismaService } from '../../../common/infra/prisma/prisma.service';
 import { Task as TaskDB } from '@prisma/client';
 
