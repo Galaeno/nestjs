@@ -1100,36 +1100,45 @@ it('GET /productos', () =>
 
 ---
 
-# 🚀 Primer deploy de **NestJS + Prisma** en **Heroku** (con Postgres)
+# 🚀 Primer deploy de **NestJS + Prisma** en **Render** (con Postgres)
 
-**Objetivo:** dejar tu API de NestJS corriendo en Heroku con una base de datos Postgres y migraciones de Prisma aplicadas.
+Se utilizará Render (Free Web Service)
 
-> Ambiente asumido: **macOS** (con Homebrew). Si usás Linux/Windows avisame y te lo adapto.  
-> Requisitos: tenés cuenta en Heroku y tu repo Nest listo (usa `process.env.PORT` en `main.ts`).
+- ✅ Fácil: conectás tu repo de GitHub, Buildpacks o Docker.
+- ✅ “Post-deploy command” para correr prisma migrate deploy.
+- ⚠️ Duerme por inactividad (primer request “despierta”).
+- DB: podés usar Neon/Supabase (recomiendo Neon) y setear DATABASE_URL.
+- Ideal para: primer deploy rápido sin pelearte con serverless.
 
----
+## 1) Crear la base de datos en **Neon** (Postgres serverless)
 
-## 1) Instalar Heroku CLI y loguearte
+```sql
+-- Se va a crear una base nueva dentro del proyecto actual que tengo de neon, porque no me permite crear otro
+-- Entrar al proyecto, elegir SQL Editor y ejecutar estos comandos
+-- creá un usuario/role propio
+CREATE ROLE my_api_user LOGIN PASSWORD 'tu_clave_fuerte';
 
-```bash
-# instalar Heroku CLI
-brew tap heroku/brew
-brew install heroku
+-- creá una DB nueva y dejala a nombre de ese usuario
+CREATE DATABASE my_api OWNER my_api_user;
 
-# chequear
-heroku --version
+-- Conectate a my_api y asegurá permisos en el schema:
+GRANT ALL ON SCHEMA public TO my_api_user;
 
-# login en navegador
-heroku login
+-- Cambiar el conexion string
+postgres://my_api_user:tu_clave_fuerte@<host>/<my_api>?sslmode=require
 ```
 
-> Si no tenés `brew`: https://devcenter.heroku.com/articles/heroku-cli
+1. Entrá a **https://neon.tech** y creá un **Project** nuevo.
+2. Elegí **Postgres**, región cercana y finalizá el wizard.
+3. En **Dashboard → Connection Details**, copiá la **Connection string**. Preferí la variante **pooled** si está disponible.
+4. Guardate la URL; la vas a usar como `DATABASE_URL`.
+   - Si tu conexión lo requiere, agregá `?sslmode=require` al final.
 
 ---
 
-## 2) Preparar Prisma para Postgres
+## 2) Configurar Prisma para Postgres
 
-Asegurate de que tu `prisma/schema.prisma` apunte a Postgres con env var:
+En `prisma/schema.prisma` verificá que el datasource apunte a Postgres y use la env var:
 
 ```prisma
 datasource db {
@@ -1142,21 +1151,20 @@ generator client {
 }
 ```
 
-Creá tu primera migración local y generá el cliente:
+Creá la primer migración local (si no la tenés) y generá el cliente:
 
 ```bash
-# desde el root del repo
 npx prisma migrate dev --name init
 npx prisma generate
 ```
 
-> **Importante:** committeá la carpeta `prisma/migrations/**` al repo.
+> **Importante:** committeá la carpeta `prisma/migrations/**` al repo. Render aplicará esas migraciones en producción.
 
 ---
 
-## 3) Scripts de `package.json`
+## 3) Scripts en `package.json`
 
-Asegurate de tener estos scripts (podés copiar/pegar):
+Asegurate de tener estos scripts mínimos para build y migraciones:
 
 ```json
 {
@@ -1169,202 +1177,128 @@ Asegurate de tener estos scripts (podés copiar/pegar):
     "migrate:deploy": "prisma migrate deploy",
     "seed": "prisma db seed"
   },
-  "prisma": { "seed": "ts-node prisma/seed.ts" } // si vas a seedear
+  "prisma": { "seed": "ts-node prisma/seed.ts" }
 }
 ```
 
-- `postinstall`: genera Prisma Client durante el build en Heroku.
-- `migrate:deploy`: aplica todas las migraciones pendientes en la DB.
-- `start:prod`: arranca la app compilada desde `dist`.
-
-> Si usás **pnpm** en lugar de npm, más abajo hay una sección opcional.
+- `postinstall` genera Prisma Client durante el build en Render.
+- `migrate:deploy` aplica TODAS las migraciones pendientes a la DB.
+- `start:prod` arranca tu app desde `dist`.
 
 ---
 
-## 4) Procfile (obligatorio en Heroku)
+## 4) Asegurar el arranque por puerto dinámico
 
-En la raíz del repo, creá un archivo **`Procfile`** (sin extensión):
-
-```
-release: pnpm run migrate:deploy
-web: node dist/main.js
-```
-
-- **release**: corre antes de cada release para aplicar migraciones.
-- **web**: comando que ejecuta el dyno web (tu API).
-
-> Heroku automáticamente va a compilar tu app con `pnpm run build` durante el deploy.
-
----
-
-## 5) Cierre prolijo de Prisma (opcional pero recomendado)
-
-En `prisma.service.ts`:
+En `src/main.ts` escuchá el puerto provisto por el entorno:
 
 ```ts
-import { Injectable, OnModuleInit, INestApplication } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
-
-@Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit {
-  async onModuleInit() {
-    await this.$connect();
-  }
-  async enableShutdownHooks(app: INestApplication) {
-    this.$on('beforeExit', async () => {
-      await app.close();
-    });
-  }
-}
-```
-
-En `main.ts`:
-
-```ts
-const app = await NestFactory.create(AppModule);
-const prisma = app.get(PrismaService);
-await prisma.enableShutdownHooks(app);
 await app.listen(process.env.PORT ?? 4000);
 ```
 
 ---
 
-## 6) Crear la app en Heroku y agregar Postgres
+## 5) Subir el repo a GitHub
 
-```bash
-# (desde la carpeta del repo con git inicializado)
-heroku create nombre-de-tu-app
-
-# agregar Postgres (plan ejemplo)
-heroku addons:create heroku-postgresql:hobby-basic -a nombre-de-tu-app
-
-# ver variables configuradas por Heroku (incluye DATABASE_URL)
-heroku config -a nombre-de-tu-app
-```
-
-### Forzar SSL en la URL (recomendado)
-
-Algunas conexiones requieren `sslmode=require`. Si tu `DATABASE_URL` no lo trae, ejecutá:
-
-```bash
-heroku config:set DATABASE_URL="$(heroku config:get DATABASE_URL -a nombre-de-tu-app)?sslmode=require" -a nombre-de-tu-app
-```
-
-> Si más adelante usás **pgBouncer** (pooling), usá:  
-> `?sslmode=require&pgbouncer=true&connection_limit=1`
+Render se conecta por Git. Asegurate de tener todo commiteado y pusheado.
 
 ---
 
-## 7) Build & Deploy
+## 6) Crear el servicio en **Render**
 
-```bash
-# compilar local (opcional)
-npm run build
+1. Entrá a **https://dashboard.render.com**.
+2. Click en **New +** → **Web Service**.
+3. Elegí **Build from a Git repository** y conectá tu repo.
+4. Completá los campos:
+   - **Name:** el que quieras (ej. `my-nest-api`).
+   - **Region:** cercana a tus usuarios.
+   - **Branch:** la rama que vas a deployar (ej. `main`).
+   - **Runtime:** Node (no Docker).
+   - **Build Command:** `pnpm install --frozen-lockfile; pnpm run build`
+   - **Start Command:** `pnpm run start`
+5. En **Environment → Environment Variables**, agregá:
+   - `DATABASE_URL` = (connection string de Neon). Si hace falta SSL: `... ?sslmode=require`
+   - Cualquier otra var que uses (ej. `JWT_SECRET`, `CORS_ORIGIN`, etc.).
+6. En **Advanced → Post-deploy Command**, agregá:
+   - `pnpm run migrate:deploy` (no deja modo gratuito)
+7. Presioná **Create Web Service** para iniciar el primer deploy.
 
-# push a Heroku (main o master según tu rama)
-git push heroku main
-# o
-git push heroku master
-```
+Render hará:
 
-Durante el deploy Heroku hará:
-
-1. Instalar dependencias → `postinstall` (→ `prisma generate`)
-2. Compilar (`nest build`)
-3. Fase **release** → `npm run migrate:deploy`
-4. Iniciar el dyno → `node dist/main.js`
-
-> Si querés correr migraciones manualmente:  
-> `heroku run -a nombre-de-tu-app npm run migrate:deploy`
+- Instalar dependencias → `postinstall` (→ `prisma generate`)
+- Compilar → `pnpm run build`
+- Ejecutar **Post-deploy Command** → `pnpm run migrate:deploy`
+- Levantar tu servicio con `node dist/main.js`
 
 ---
 
-## 8) Seed (opcional, una sola vez)
+## 7) Seed de datos (opcional)
 
-Si tenés `prisma/seed.ts`, corrélo así:
+Si definiste `prisma/seed.ts` y el script en `package.json`:
+
+- Desde la UI de Render, abrí tu servicio → **Shell** → ejecutá:
 
 ```bash
-heroku run -a nombre-de-tu-app npm run seed
+npm run seed
 ```
 
 ---
 
-## 9) Probar y ver logs
+## 8) Probar la API
 
-```bash
-# abrir la app (si tenés algún endpoint GET en / o /health)
-heroku open -a nombre-de-tu-app
-
-# ver logs en vivo
-heroku logs -t -a nombre-de-tu-app
-```
+- Abrí la URL pública que Render te muestra (ej. `https://my-nest-api.onrender.com`).
+- Si agregaste un endpoint de health (recomendado): `GET /health` debería responder `{"status":"ok", ...}`.
 
 ---
 
-## 10) Variables de entorno adicionales
+## 9) Logs y diagnósticos
 
-Si tu app necesita otras env vars (JWT_SECRET, CORS_ORIGIN, etc.):
-
-```bash
-heroku config:set JWT_SECRET="loquesea" -a nombre-de-tu-app
-heroku config:set CORS_ORIGIN="https://tu-front.vercel.app" -a nombre-de-tu-app
-```
+En el panel de Render → tu servicio → **Logs**.  
+Ahí ves tanto el **Build Log** como el **Runtime Log**.
 
 ---
 
-## (Opcional) Usar **pnpm** en Heroku
-
-Si preferís deploy con `pnpm`:
-
-```bash
-heroku buildpacks:add -a nombre-de-tu-app https://github.com/pnpm/heroku-buildpack-pnpm
-heroku buildpacks:add -a nombre-de-tu-app heroku/nodejs
-```
-
-En `package.json` podés agregar:
-
-```json
-{
-  "scripts": {
-    "heroku-postbuild": "pnpm prisma generate && pnpm build"
-  }
-}
-```
-
-Y en el **Procfile** reemplazar `npm` por `pnpm` si querés:
-
-```
-release: pnpm run migrate:deploy
-web: node dist/main.js
-```
-
----
-
-## Troubleshooting común
-
-- **Error de SSL / “connection error”**  
-  Asegurate que `DATABASE_URL` tenga `?sslmode=require`. Volvé a setearla y redeployá.
-
-- **Pool de conexiones saturado**  
-  Considerá **pgBouncer** y sumale `&pgbouncer=true&connection_limit=1` a la URL.
-
-- **Migraciones no corren**  
-  Revisá que exista `Procfile` y que tenga el `release: npm run migrate:deploy`. Mirá `heroku logs` en la fase release.
-
-- **La app no levanta**  
-  Confirmá que **`main.ts`** usa `process.env.PORT` y que estás ejecutando `web: node dist/main.js`.
-
----
-
-## Checklist final
+## 10) Checklist rápido
 
 - [ ] `schema.prisma` con `provider="postgresql"` y `url=env("DATABASE_URL")`
-- [ ] Migraciones **commiteadas** (`prisma/migrations/**`)
+- [ ] Migraciones **commiteadas** en `prisma/migrations/**`
 - [ ] `package.json` con `postinstall`, `build`, `migrate:deploy`, `start:prod`
-- [ ] **Procfile** con `release:` y `web:`
-- [ ] `DATABASE_URL` en Heroku (con `sslmode=require`)
-- [ ] (Opcional) Seed corrido una vez
-- [ ] App responde en `https://nombre-de-tu-app.herokuapp.com` (o el dominio asignado)
+- [ ] `main.ts` usando `process.env.PORT`
+- [ ] Servicio en Render con:
+  - [ ] `Build Command: npm run build`
+  - [ ] `Start Command: node dist/main.js`
+  - [ ] `DATABASE_URL` configurada
+  - [ ] `Post-deploy Command: npm run migrate:deploy`
+- [ ] (Opcional) Seed ejecutado una vez
+
+---
+
+## 11) Troubleshooting común
+
+- **Error de conexión a DB / SSL**  
+  Verificá que `DATABASE_URL` tenga `?sslmode=require` si tu proveedor lo exige.
+- **Migraciones no se aplican**  
+  Revisá **Post-deploy Command** y logs. Confirmá que las migraciones estén commiteadas.
+- **App no arranca**  
+  Confirmá que `main.ts` usa `process.env.PORT` y que el **Start Command** es `node dist/main.js`.
+- **Pool de conexiones**  
+  Con proveedores serverless, usá la connection string **pooled**. Si sigue fallando, reducí el pool en Prisma (`pgbouncer=true&connection_limit=1`).
+
+---
+
+## 12) Extras útiles
+
+- **Endpoint de health** rápido:
+  ```ts
+  @Controller('health')
+  export class HealthController {
+    @Get() ping() {
+      return { status: 'ok', ts: new Date().toISOString() };
+    }
+  }
+  ```
+- **Seeds por entorno**: separá datos de demo vs prod.
+- **CORS**: habilitalo si consumís desde un front público.
+- **Monitor**: configurá alertas en Render (Health checks/latencia).
 
 ---
 
