@@ -1186,14 +1186,14 @@ Asegurate de tener estos scripts (podés copiar/pegar):
 En la raíz del repo, creá un archivo **`Procfile`** (sin extensión):
 
 ```
-release: npm run migrate:deploy
+release: pnpm run migrate:deploy
 web: node dist/main.js
 ```
 
 - **release**: corre antes de cada release para aplicar migraciones.
 - **web**: comando que ejecuta el dyno web (tu API).
 
-> Heroku automáticamente va a compilar tu app con `npm run build` durante el deploy.
+> Heroku automáticamente va a compilar tu app con `pnpm run build` durante el deploy.
 
 ---
 

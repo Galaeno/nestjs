@@ -1,0 +1,26 @@
+# Desarrollo (hot reload) para NestJS
+FROM node:22-alpine
+
+WORKDIR /app
+
+# deps del SO si las necesitás (ej: openssl para prisma)
+RUN apk add --no-cache openssl
+
+# Copio package.json/pnpm-lock primero para cachear deps
+COPY package.json pnpm-lock.yaml* ./
+
+# Si usás pnpm localmente:
+RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN pnpm i
+
+# Resto del código
+COPY . .
+
+# Generar prisma client
+RUN pnpm prisma generate
+
+# Exponer puerto de dev
+EXPOSE 4000
+
+# Levantar en modo dev (ajustá si preferís start:dev)
+CMD ["pnpm", "run", "start:dev"]
