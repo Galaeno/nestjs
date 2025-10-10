@@ -262,6 +262,226 @@ Complejidad conceptual/operativa mayor. No aplicar si la app es CRUD simple.
 - **Nivel 3 →** mantenibilidad y desacoplamiento de infra.  
 - **Nivel 4 →** escalabilidad (reads/writes) y event‑driven.
 
+## Resumen
+### Mapa mental (rápido)
+
+- **DTO (request/response)** → *capa de aplicación/HTTP*. Son **clases** con `class-validator` / Swagger.  
+  - Viven en: `src/modules/<feature>/dto/`
+  - Usados en controllers/resolvers.
+  - JSON-friendly (si hay `bigint`, exponer como `string`).
+
+- **Entity (modelo de dominio)** → *núcleo del negocio*. Reglas/invariantes y posible comportamiento (`toggle()`, etc.).  
+  - Viven en: `src/modules/<feature>/domain/`
+  - Puro TypeScript (sin Nest/Prisma/HTTP).
+
+- **Ports (interfaces)** → contratos que el dominio necesita (p.ej. `TasksRepository`).  
+  - Viven en: `src/modules/<feature>/domain/ports/`
+  - Puro TypeScript. No dependen de libs externas.
+
+- **Infra (adapters)** → implementaciones concretas de los **ports** con tecnología real (Prisma/Redis/HTTP).  
+  - Viven en: `src/modules/<feature>/infra/`
+  - Dependen de Prisma/Nest/etc.
+  - Mapean **ORM ↔ Entity**.
+
+- **Service de aplicación (Nest)** → orquesta casos de uso: llama **ports**, maneja transacciones, mapea **DTO ↔ Entity**, publica eventos.  
+  - Archivo típico: `src/modules/<feature>/<feature>.service.ts`
+  - **No** debería codificar políticas complejas (delegarlas al dominio).
+
+- **Service de dominio (opcional)** → reglas/políticas puras que no pertenecen a una sola Entity o involucran varias.  
+  - Viven en: `src/modules/<feature>/domain/services/`
+  - Puro TS, sin infra.
+
+---
+
+### Flujo end-to-end (ASCII)
+
+```
+Request JSON
+   ↓ (DTO req: valida/transforma)
+Controller ── mapea DTO → Entity/Command ──► Service (aplicación)
+                                              │
+                                              ▼ (port / interface)
+                              TasksRepository (domain/ports) … contrato
+                                              │
+                                              ▼ (implementación real)
+                       PrismaTasksRepository (infra) ──► DB (Prisma)
+                                              ▲
+                               mapea ORM ↔ Entity (dominio puro)
+                                              │
+Service ◄────────────── Entity/resultado ─────┘
+   │
+Controller ── mapea Entity → DTO resp ──► Response JSON
+```
+
+---
+
+### Estructura de carpetas recomendada
+
+```
+src/
+├─ common/                       # cross-cutting técnico (guards, pipes, middleware, etc.)
+│  ├─ guards/
+│  ├─ pipes/
+│  └─ middleware/
+├─ infra/                        # infraestructura compartida
+│  └─ prisma/
+│     ├─ prisma.service.ts
+│     └─ prisma.module.ts
+├─ modules/
+│  └─ tasks/
+│     ├─ domain/
+│     │  ├─ task.entity.ts
+│     │  ├─ services/           # opcional: reglas puras
+│     │  └─ ports/
+│     │     └─ tasks.repository.ts
+│     ├─ infra/
+│     │  └─ prisma-tasks.repository.ts
+│     ├─ dto/
+│     │  ├─ create-task.dto.ts
+│     │  ├─ update-task.dto.ts
+│     │  └─ task.response.ts
+│     ├─ tokens.ts              # Symbols p/ DI de ports
+│     ├─ tasks.controller.ts
+│     ├─ tasks.service.ts       # orquestación (aplicación)
+│     └─ tasks.module.ts
+├─ app.module.ts
+└─ main.ts
+```
+
+> **`common/`** es técnico, no pongas reglas de negocio ahí.  
+> **Dominio** debe compilar y testear sin instalar Prisma/Nest.
+
+---
+
+### Cuándo va **Service en dominio** vs **Service en aplicación**
+
+- **Dominio**: políticas puras/algoritmos/reglas cross-entity sin infra.  
+  - + testeable sin DB/HTTP, + reusabilidad.
+- **Aplicación**: orquestación; llama repos, mapea DTO↔Entity, maneja transacciones/eventos.
+
+**Regla de oro:** si necesita librerías externas o coordina dependencias → **aplicación**. Si es solo lógica de negocio pura → **dominio**.
+
+---
+
+### Ejemplos breves
+
+#### 1) Entity (dominio)
+```ts
+// domain/task.entity.ts
+export class Task {
+  constructor(public readonly id: bigint, public title: string, public status: boolean) {
+    if (!title?.trim()) throw new Error('Título requerido');
+  }
+  toggle() { this.status = !this.status; }
+}
+```
+
+#### 2) Port (contrato)
+```ts
+// domain/ports/tasks.repository.ts
+import { Task } from '../task.entity';
+export interface TasksRepository {
+  findById(id: bigint): Promise<Task | null>;
+  save(task: Task): Promise<void>;
+  delete(id: bigint): Promise<void>;
+}
+```
+
+#### 3) Infra (implementación del port con Prisma)
+```ts
+// infra/prisma-tasks.repository.ts
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../../../infra/prisma/prisma.service';
+import { TasksRepository } from '../domain/ports/tasks.repository';
+import { Task } from '../domain/task.entity';
+
+@Injectable()
+export class PrismaTasksRepository implements TasksRepository {
+  constructor(private readonly prisma: PrismaService) {}
+
+  private toEntity(r: { id: bigint; title: string; status: boolean }): Task {
+    return new Task(r.id, r.title, r.status);
+  }
+
+  async findById(id: bigint) {
+    const row = await this.prisma.task.findUnique({ where: { id } });
+    return row ? this.toEntity(row) : null;
+  }
+
+  async save(task: Task) {
+    await this.prisma.task.upsert({
+      where: { id: task.id },
+      create: { id: task.id, title: task.title, status: task.status },
+      update: { title: task.title, status: task.status },
+    });
+  }
+
+  async delete(id: bigint) {
+    await this.prisma.task.delete({ where: { id } });
+  }
+}
+```
+
+#### 4) Service de aplicación (Nest)
+```ts
+// tasks.service.ts
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { TASKS_REPOSITORY } from './tokens';
+import { TasksRepository } from './domain/ports/tasks.repository';
+
+@Injectable()
+export class TasksService {
+  constructor(@Inject(TASKS_REPOSITORY) private readonly repo: TasksRepository) {}
+
+  async getTask(id: bigint) {
+    const t = await this.repo.findById(id);
+    if (!t) throw new NotFoundException('Task no encontrada');
+    return t;
+  }
+}
+```
+
+#### 5) Controller + DTO (HTTP)
+```ts
+// dto/task.response.ts
+export class TaskResponse { id!: string; title!: string; status!: boolean; }
+
+// tasks.controller.ts
+import { Controller, Get, Param } from '@nestjs/common';
+import { TasksService } from './tasks.service';
+import { TaskResponse } from './dto/task.response';
+import { ParseBigIntPipe } from '../../common/pipes/parse-bigint.pipe';
+
+@Controller('tasks')
+export class TasksController {
+  constructor(private readonly service: TasksService) {}
+
+  @Get(':id')
+  async findOne(@Param('id', ParseBigIntPipe) id: bigint): Promise<TaskResponse> {
+    const t = await this.service.getTask(id);
+    return { id: t.id.toString(), title: t.title, status: t.status };
+  }
+}
+```
+
+---
+
+### Checklist rápido
+
+- [ ] **DTOs**: clases (no interfaces), validación y Swagger; response JSON-friendly.  
+- [ ] **Entities**: reglas + comportamiento; sin Nest/Prisma.  
+- [ ] **Ports**: interfaces en `domain/ports`; 0 dependencias externas.  
+- [ ] **Infra**: adapters que implementan ports y mapean ORM↔Entity.  
+- [ ] **Services (aplicación)**: orquestación; dependen de ports (no de Prisma).  
+- [ ] **Opcional**: *domain services* para políticas complejas.  
+- [ ] **Common**: solo cross-cutting técnico (no negocio).
+
+---
+
+### TL;DR (una línea)
+**Dominio** = reglas puras + contratos (entities/ports); **Infra** = implementación real de esos contratos; **Aplicación** = orquesta y mapea DTO↔dominio.  
+Con Prisma: mapeá **Prisma ↔ Entity** en *infra*, y **Entity ↔ DTO** en el *controller/service*.
+
 ---
 
 # Fundamentos de NestJS
@@ -529,7 +749,7 @@ nest g res users
 ## Base de Datos (Persistencia)
 Se puede usar cualquier base, a modo ejemplo, se usara Prisma y TypeORM
 
-### Prisma (recomendado por DX)
+## Prisma (recomendado por DX)
 https://docs.nestjs.com/recipes/prisma
 1. Se instala e inicia prisma
 ```bash
@@ -634,14 +854,33 @@ async function bootstrap() {
 bootstrap();
 ```
 
+## CORS
+1. Ingresa a about:blank
+2. En la consola ingresa a: fetch('http://localhost:4000/tasks'), se deberia ver error:
+```js
+Access to fetch at 'http://localhost:4000/tasks' from origin 'null' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. If an opaque response serves your needs, set the request's mode to 'no-cors' to fetch the resource with CORS disabled. 
+```
+3. Agregar en main.ts
+```ts
+app.enableCors();
+```
+4. Volver a correr fetch('http://localhost:4000/tasks') y ver que retorna una promesa
+```js
+Promise {<pending>}
+```
+5. Tratarla para ver la respuesta:
+```js
+fetch('http://localhost:4000/tasks')
+  .then(r => r.json())
+  .then(d => console.log(d))
 
+// output
+0: {id: 3, title: 'Tarea 2', status: false}
+1: {id: 4, title: 'Nueva tarea wacho', status: true}
+```
 
-
-
-
-
-
-### Interceptors (logging, mapping, cache)
+## Interceptors (logging, mapping, cache)
+Interceptor para *cross-cutting concerns* (logging, mapping, caching). Se usa para Transformar `data`, medir tiempos, etc.  
 ```ts
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { map } from 'rxjs/operators';
@@ -653,7 +892,7 @@ export class WrapInterceptor implements NestInterceptor {
 }
 ```
 
-### Exception Filters
+## Exception Filters
 ```ts
 import { ExceptionFilter, Catch, ArgumentsHost, HttpException } from '@nestjs/common';
 @Catch(HttpException)
@@ -664,3 +903,104 @@ export class HttpErrorFilter implements ExceptionFilter {
   }
 }
 ```
+
+---
+
+# Ciclo de vida, alcance (scope) y ModuleRef
+- **Lifecycle hooks**: `OnModuleInit`, `OnModuleDestroy`, `BeforeApplicationShutdown`.
+- **Scopes**: `DEFAULT` (singleton), `REQUEST` (por request), `TRANSIENT`.
+- **ModuleRef**: resolver providers dinámicamente o crear instancias con scope específico.
+
+```ts
+import { Injectable, Scope } from '@nestjs/common';
+@Injectable({ scope: Scope.REQUEST })
+export class RequestScopedService {/* ... */}
+```
+
+---
+
+# Cache y Logging
+- **CacheModule** (memory/redis) para cachear respuestas o datos.
+- **Logger**: `app.useLogger` o `Logger` de Nest; integrá con **Winston/Pino** para producción.
+
+```ts
+import { CacheModule } from '@nestjs/cache-manager';
+@Module({ imports: [CacheModule.register({ ttl: 60 })] })
+export class AppModule {}
+```
+
+---
+
+# WebSockets y Microservicios (visión rápida)
+- **WebSockets**: `@WebSocketGateway()` y `@SubscribeMessage()` con `socket.io` o `ws`.
+- **Microservices**: `@nestjs/microservices` (TCP, Redis, NATS, Kafka). Útil para **event-driven**.
+
+---
+
+# Testing (Unit y E2E)
+- **Unit**: testeás servicios y controladores aislados con `TestingModule`.
+- **E2E**: levantás la app en memoria y pegás requests reales (supertest).
+
+```ts
+import { Test, TestingModule } from '@nestjs/testing';
+import { ProductosService } from './productos.service';
+
+describe('ProductosService', () => {
+  let service: ProductosService;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [ProductosService],
+    }).compile();
+    service = module.get(ProductosService);
+  });
+
+  it('crea producto', async () => {
+    const p = await service.create({ nombre: 'Mate', precio: 1000 });
+    expect(p.nombre).toBe('Mate');
+  });
+});
+```
+
+```ts
+// E2E (ejemplo)
+import { INestApplication } from '@nestjs/common';
+import * as request from 'supertest';
+
+let app: INestApplication;
+beforeAll(async () => { /* crear TestingModule + app.init() */ });
+it('GET /productos', () => request(app.getHttpServer()).get('/productos').expect(200));
+```
+
+---
+
+# Buenas prácticas
+- **Controladores delgados**, **servicios gordos** (dominio).
+- **DTOs + ValidationPipe** global (`whitelist`, `transform`).
+- **Módulos por feature**, **exports** mínimos necesarios.
+- **ConfigModule** global para `.env` (sin acoplar a `process.env` en todo el código).
+- **Errores HTTP** con `HttpException`/subclases (`NotFoundException`, etc.).
+- **Guards** para auth/autorización; **interceptors** para logging/transformación.
+- **Separá** capa de persistencia (Prisma/TypeORM) detrás de servicios/repositorios.
+- **Swagger** desde el inicio para alinear modelo con consumidores.
+- Linters, formateo y CI con pruebas unitarias/E2E.
+
+---
+
+# Errores comunes
+1. Meter lógica de negocio en controladores (difícil de testear y reusar).
+2. No usar DTOs/validación → endpoints frágiles e inseguros.
+3. `exports` de módulos innecesarios → acoplamiento circular.
+4. Dependencias request‑scoped por default → performance mala.
+5. Capturar errores a mano en todos lados; en lugar de eso, **filters** o excepciones HTTP.
+6. Confundir **middleware** (nivel Express) con **guards** (nivel Nest).
+
+---
+
+# Roadmap de crecimiento
+- **Auth** con Passport/JWT, refresh tokens, RBAC/ABAC.
+- **Capa de dominio** separada + **DDD**/Hexagonal.
+- **Microservicios** y mensajería (eventos/colas).
+- **CQRS** (`@nestjs/cqrs`) para comandos y queries en dominios grandes.
+- **GraphQL** (`@nestjs/graphql`) con code‑first/schema‑first.
+- **Observabilidad**: salud, métricas, tracing (OpenTelemetry).
