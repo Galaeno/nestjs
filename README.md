@@ -1112,8 +1112,11 @@ Se utilizará Render (Free Web Service)
 
 ## 1) Crear la base de datos en **Neon** (Postgres serverless)
 
+Se va a crear una base nueva dentro del proyecto actual que tengo de neon, porque no me permite crear otro:
+
+- Forma por script
+
 ```sql
--- Se va a crear una base nueva dentro del proyecto actual que tengo de neon, porque no me permite crear otro
 -- Entrar al proyecto, elegir SQL Editor y ejecutar estos comandos
 -- creá un usuario/role propio
 CREATE ROLE my_api_user LOGIN PASSWORD 'tu_clave_fuerte';
@@ -1127,6 +1130,8 @@ GRANT ALL ON SCHEMA public TO my_api_user;
 -- Cambiar el conexion string
 postgres://my_api_user:tu_clave_fuerte@<host>/<my_api>?sslmode=require
 ```
+
+- Sino desde la web se puede crear DB nueva
 
 1. Entrá a **https://neon.tech** y creá un **Project** nuevo.
 2. Elegí **Postgres**, región cercana y finalizá el wizard.
