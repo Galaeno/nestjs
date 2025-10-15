@@ -1225,6 +1225,7 @@ Render se conecta por Git. Asegurate de tener todo commiteado y pusheado.
    - Cualquier otra var que uses (ej. `JWT_SECRET`, `CORS_ORIGIN`, etc.).
 6. En **Advanced → Post-deploy Command**, agregá:
    - `pnpm run migrate:deploy` (no deja modo gratuito)
+   - Alternativa: agregar un script en el package.json: "start:with-migrations": "prisma generate && pnpm run migrate:deploy && pnpm run start:prod", y modificar el Start Command para que sea: pnpm run start:with-migrations
 7. Presioná **Create Web Service** para iniciar el primer deploy.
 
 Render hará:
