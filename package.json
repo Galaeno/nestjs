@@ -20,7 +20,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "postinstall": "prisma generate",
     "migrate:deploy": "prisma migrate deploy",
-    "start:with-migrations": "pnpm run postinstall && pnpm run migrate:deploy && pnpm run start:prod"
+    "start:with-migrations": "pnpm run migrate:deploy && pnpm run start:prod"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
